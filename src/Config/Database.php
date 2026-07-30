@@ -22,13 +22,26 @@ class Database
     public static function getConnection(): PDO
     {
         if (self::$instance === null) {
-            $host     = $_ENV['DB_HOST'];
-            $port     = $_ENV['DB_PORT'];
-            $database = $_ENV['DB_DATABASE'];
-            $username = $_ENV['DB_USERNAME'];
-            $password = $_ENV['DB_PASSWORD'];
+            $databaseUrl = $_ENV['DATABASE_URL'] ?? null;
 
-            $dsn = "pgsql:host={$host};port={$port};dbname={$database}";
+            if ($databaseUrl !== null) {
+                // Formato usado por serviços gerenciados (ex: Render)
+                $partes = parse_url($databaseUrl);
+                $host     = $partes['host'];
+                $port     = $partes['port'] ?? 5432;
+                $database = ltrim($partes['path'], '/');
+                $username = $partes['user'];
+                $password = $partes['pass'];
+            } else {
+                // Formato usado em desenvolvimento local (variáveis separadas)
+                $host     = $_ENV['DB_HOST'];
+                $port     = $_ENV['DB_PORT'];
+                $database = $_ENV['DB_DATABASE'];
+                $username = $_ENV['DB_USERNAME'];
+                $password = $_ENV['DB_PASSWORD'];
+            }
+
+            $dsn = "pgsql:host={$host};port={$port};dbname={$database};sslmode=require";
 
             try {
                 self::$instance = new PDO($dsn, $username, $password, [
