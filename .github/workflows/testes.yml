@@ -1,0 +1,56 @@
+name: Testes Automatizados
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: apollo_ci
+          POSTGRES_PASSWORD: apollo_ci_senha
+          POSTGRES_DB: apollo_ia_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Baixar código do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo, pdo_pgsql
+
+      - name: Instalar dependências do Composer
+        run: composer install --prefer-dist --no-progress
+
+      - name: Aplicar schema do banco de dados
+        run: |
+          PGPASSWORD=apollo_ci_senha psql -h 127.0.0.1 -U apollo_ci -d apollo_ia_db -f database/schema.sql
+
+      - name: Criar .env de teste
+        run: |
+          echo "DB_HOST=127.0.0.1" >> .env
+          echo "DB_PORT=5432" >> .env
+          echo "DB_DATABASE=apollo_ia_db" >> .env
+          echo "DB_USERNAME=apollo_ci" >> .env
+          echo "DB_PASSWORD=apollo_ci_senha" >> .env
+          echo "GEMINI_API_KEY=chave-fake-para-ci" >> .env
+          echo "GEMINI_MODEL=gemini-2.5-flash" >> .env
+
+      - name: Rodar testes automatizados
+        run: composer test
