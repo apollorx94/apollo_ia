@@ -79,4 +79,27 @@ class PerguntaRepositoryTest extends TestCase
 
         $this->assertNull($resultado);
     }
+
+    public function test_deleta_pergunta_existente(): void
+    {
+        $pergunta = new Pergunta(
+            id: null,
+            pergunta: 'Pergunta a ser deletada',
+            resposta: null,
+            modeloIa: 'gemini-2.5-flash',
+        );
+        $perguntaSalva = $this->repository->salvar($pergunta);
+
+        $resultado = $this->repository->deletar($perguntaSalva->getId());
+
+        $this->assertTrue($resultado);
+        $this->assertNull($this->repository->buscarPorId($perguntaSalva->getId()));
+    }
+
+    public function test_deletar_id_inexistente_retorna_false(): void
+    {
+        $resultado = $this->repository->deletar(999999999);
+
+        $this->assertFalse($resultado);
+    }
 }

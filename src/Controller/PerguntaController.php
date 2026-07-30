@@ -83,4 +83,12 @@ class PerguntaController
 
         return $pergunta?->toArray();
     }
+
+    /**
+     * Remove uma pergunta do histórico.
+     */
+    public function deletar(int $id): bool
+    {
+        return $this->repository->deletar($id);
+    }
 }

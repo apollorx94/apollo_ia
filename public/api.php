@@ -59,6 +59,21 @@ try {
     http_response_code(404);
     echo json_encode(['erro' => 'Rota não encontrada.'], JSON_UNESCAPED_UNICODE);
 
+    // Endpoint: DELETE /api.php?recurso=perguntas&id=1 → remove uma pergunta
+    if ($metodo === 'DELETE' && $recurso === 'perguntas' && isset($_GET['id'])) {
+        $removido = $controller->deletar((int) $_GET['id']);
+
+        if (!$removido) {
+            http_response_code(404);
+            echo json_encode(['erro' => 'Pergunta não encontrada.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        http_response_code(200);
+        echo json_encode(['mensagem' => 'Pergunta removida com sucesso.'], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
 } catch (\RuntimeException $e) {
     http_response_code(400);
     echo json_encode(['erro' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
