@@ -118,4 +118,18 @@ class PerguntaRepository
             criadoEm: $linha['criado_em'],
         );
     }
+
+    /**
+     * Remove uma pergunta do histórico pelo ID.
+     * Retorna true se algo foi de fato removido.
+     */
+    public function deletar(int $id): bool
+    {
+        $sql = "DELETE FROM perguntas WHERE id = :id";
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute(['id' => $id]);
+
+        return $stmt->rowCount() > 0;
+    }
 }
