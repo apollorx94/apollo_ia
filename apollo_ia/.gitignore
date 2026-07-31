@@ -1,0 +1,16 @@
+# Dependências do Composer (reconstruídas via composer install)
+/vendor/
+
+# Variáveis de ambiente (contém segredos - NUNCA versionar)
+.env
+
+# Arquivos de sistema/editor
+.DS_Store
+*.log
+
+# Cache do PHPUnit
+.phpunit.result.cache
+/tests/_output/
+
+# Configuração local do VS Code (opcional versionar, mas geralmente não)
+.vscode/
