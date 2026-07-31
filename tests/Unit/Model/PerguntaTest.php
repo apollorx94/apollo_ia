@@ -1,5 +1,16 @@
 <?php
 
+/**
+ * ============================================================================
+ * Testes UNITÁRIOS do Model Pergunta
+ * ============================================================================
+ *
+ * "Unitário" significa: testa a classe Pergunta de forma TOTALMENTE
+ * ISOLADA, sem tocar banco de dados, rede ou qualquer coisa externa.
+ * Por isso estes testes rodam em milissegundos.
+ * ============================================================================
+ */
+
 declare(strict_types=1);
 
 namespace Tests\Unit\Model;
@@ -9,6 +20,8 @@ use PHPUnit\Framework\TestCase;
 
 class PerguntaTest extends TestCase
 {
+    /** Garante que os dados passados no construtor são armazenados e
+     *  devolvidos corretamente pelos getters. */
     public function test_cria_pergunta_com_dados_validos(): void
     {
         $pergunta = new Pergunta(
@@ -24,6 +37,8 @@ class PerguntaTest extends TestCase
         $this->assertSame('gemini-2.5-flash', $pergunta->getModeloIa());
     }
 
+    /** Garante que setResposta() realmente atualiza o valor interno,
+     *  simulando o momento em que a IA responde. */
     public function test_atualiza_resposta_corretamente(): void
     {
         $pergunta = new Pergunta(
@@ -41,6 +56,8 @@ class PerguntaTest extends TestCase
         );
     }
 
+    /** Garante que toArray() devolve exatamente as chaves esperadas —
+     *  esse array é o que vira JSON na resposta da API. */
     public function test_converte_para_array_corretamente(): void
     {
         $pergunta = new Pergunta(

@@ -1,5 +1,21 @@
 <?php
 
+/**
+ * ============================================================================
+ * PerguntaRepository — camada de acesso a dados (padrão Repository)
+ * ============================================================================
+ *
+ * TODO o SQL relacionado à tabela `perguntas` vive exclusivamente aqui.
+ * Nenhuma outra classe do sistema (Controller, Service, View) deve montar
+ * queries diretamente — assim, se um dia trocarmos de banco de dados, só
+ * esta classe precisa mudar.
+ *
+ * Todas as queries usam PREPARED STATEMENTS (:pergunta, :id, etc.) — o
+ * banco recebe a estrutura da query e os dados separadamente, o que
+ * previne ataques de SQL Injection.
+ * ============================================================================
+ */
+
 declare(strict_types=1);
 
 namespace App\Repository;
@@ -8,26 +24,26 @@ use App\Model\Pergunta;
 use App\Config\Database;
 use PDO;
 
-/**
- * Responsável por toda a persistência (SQL) relacionada
- * à entidade Pergunta. Nenhuma outra classe do sistema
- * deve escrever SQL relacionado a esta tabela.
- */
 class PerguntaRepository
 {
     private PDO $pdo;
 
     public function __construct()
     {
+        // Reaproveita a conexão única (Singleton) definida em Database.
         $this->pdo = Database::getConnection();
     }
 
     /**
-     * Insere uma nova pergunta (ainda sem resposta) e retorna
-     * o Model já com o ID gerado pelo banco.
+     * Insere uma nova pergunta no banco (geralmente ainda sem resposta)
+     * e devolve um novo objeto Pergunta já com o `id` e `criado_em`
+     * gerados pelo próprio PostgreSQL.
      */
     public function salvar(Pergunta $pergunta): Pergunta
     {
+        // RETURNING é um recurso do PostgreSQL: devolve, no mesmo INSERT,
+        // valores gerados automaticamente pelo banco (id via SERIAL,
+        // criado_em via DEFAULT NOW()) — sem precisar de um segundo SELECT.
         $sql = "INSERT INTO perguntas (pergunta, resposta, modelo_ia)
                 VALUES (:pergunta, :resposta, :modelo_ia)
                 RETURNING id, criado_em";
@@ -41,6 +57,8 @@ class PerguntaRepository
 
         $linha = $stmt->fetch();
 
+        // Monta um NOVO objeto Pergunta (imutável), agora com o id/data
+        // reais que vieram do banco.
         return new Pergunta(
             id: (int) $linha['id'],
             pergunta: $pergunta->getPergunta(),
@@ -51,8 +69,8 @@ class PerguntaRepository
     }
 
     /**
-     * Atualiza a resposta de uma pergunta já existente,
-     * identificada pelo seu ID.
+     * Atualiza apenas o campo `resposta` de uma pergunta já existente,
+     * identificada pelo seu `id`. Usado depois que a IA já respondeu.
      */
     public function atualizarResposta(int $id, string $resposta): void
     {
@@ -66,10 +84,10 @@ class PerguntaRepository
     }
 
     /**
-     * Retorna todas as perguntas cadastradas, da mais
-     * recente para a mais antiga.
+     * Retorna TODAS as perguntas cadastradas, da mais recente para a
+     * mais antiga (ORDER BY criado_em DESC).
      *
-     * @return Pergunta[]
+     * @return Pergunta[] lista de objetos Pergunta
      */
     public function listarTodas(): array
     {
@@ -80,6 +98,10 @@ class PerguntaRepository
         $stmt = $this->pdo->query($sql);
         $linhas = $stmt->fetchAll();
 
+        // array_map() aplica a função abaixo a CADA linha vinda do banco,
+        // transformando cada array associativo em um objeto Pergunta.
+        // `fn (...) => ...` é uma arrow function (PHP 7.4+), uma forma
+        // compacta de função anônima.
         return array_map(
             fn (array $linha) => new Pergunta(
                 id: (int) $linha['id'],
@@ -93,7 +115,9 @@ class PerguntaRepository
     }
 
     /**
-     * Busca uma única pergunta pelo ID. Retorna null se não encontrar.
+     * Busca uma única pergunta pelo `id`. Retorna `null` (em vez de
+     * lançar erro) quando não encontra nada — assim quem chamar decide
+     * como tratar o "não encontrado" (ex: devolver 404 na API).
      */
     public function buscarPorId(int $id): ?Pergunta
     {
@@ -106,6 +130,9 @@ class PerguntaRepository
 
         $linha = $stmt->fetch();
 
+        // fetch() retorna `false` (não `null`) quando não encontra nada.
+        // Convertendo para `null` aqui, deixamos o restante do código
+        // mais idiomático em PHP moderno.
         if ($linha === false) {
             return null;
         }
@@ -120,8 +147,10 @@ class PerguntaRepository
     }
 
     /**
-     * Remove uma pergunta do histórico pelo ID.
-     * Retorna true se algo foi de fato removido.
+     * Remove uma pergunta do banco pelo `id`.
+     *
+     * @return bool `true` se alguma linha foi de fato removida, `false`
+     *              se o `id` não existia (nada foi afetado).
      */
     public function deletar(int $id): bool
     {
@@ -130,6 +159,7 @@ class PerguntaRepository
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute(['id' => $id]);
 
+        // rowCount() diz quantas linhas foram afetadas pelo último comando.
         return $stmt->rowCount() > 0;
     }
 }
