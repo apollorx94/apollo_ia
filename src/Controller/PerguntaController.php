@@ -16,6 +16,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Config\Env;
 use App\Model\Pergunta;
 use App\Repository\PerguntaRepository;
 use App\Service\GeminiService;
@@ -53,10 +54,12 @@ class PerguntaController
             throw new RuntimeException('O campo "pergunta" não pode estar vazio.');
         }
 
-        // O modelo de IA em uso vem do .env no momento da criação —
-        // por isso cada pergunta grava o modelo que REALMENTE a
-        // respondeu, mesmo que o .env seja trocado no futuro.
-        $modeloAtual = $_ENV['GEMINI_MODEL'] ?? 'gemini-2.5-flash';
+        // O modelo de IA em uso vem da configuração no momento da
+        // criação — por isso cada pergunta grava o modelo que
+        // REALMENTE a respondeu, mesmo que a configuração mude depois.
+        // Env::get() funciona tanto local/CI (via .env) quanto em
+        // produção na Render (via variável de ambiente real).
+        $modeloAtual = Env::get('GEMINI_MODEL', 'gemini-2.5-flash');
 
         // 1) Salva a pergunta ANTES de chamar a IA. Assim, se a chamada
         //    à IA falhar (rede caiu, chave inválida...), a pergunta não

@@ -12,6 +12,10 @@
  *
  * Usa a extensão cURL nativa do PHP (sem dependências externas) para
  * enviar a pergunta e interpretar a resposta.
+ *
+ * As variáveis de configuração são lidas via App\Config\Env::get() (veja
+ * o comentário detalhado em Database.php sobre por que isso é necessário
+ * para funcionar tanto local/CI quanto em produção na Render).
  * ============================================================================
  */
 
@@ -19,6 +23,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Config\Env;
 use RuntimeException;
 
 class GeminiService
@@ -32,8 +37,8 @@ class GeminiService
 
     public function __construct()
     {
-        $this->apiKey = $_ENV['GEMINI_API_KEY'] ?? '';
-        $this->modelo = $_ENV['GEMINI_MODEL'] ?? 'gemini-2.5-flash';
+        $this->apiKey = Env::get('GEMINI_API_KEY', '');
+        $this->modelo = Env::get('GEMINI_MODEL', 'gemini-2.5-flash');
 
         // "Fail fast": se a chave não estiver configurada, falha
         // IMEDIATAMENTE com uma mensagem clara, em vez de deixar o erro

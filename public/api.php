@@ -31,10 +31,23 @@ require_once __DIR__ . '/../vendor/autoload.php';
 use Dotenv\Dotenv;
 use App\Controller\PerguntaController;
 
-// Lê o arquivo .env (na raiz do projeto, um nível acima de public/) e
-// popula a superglobal $_ENV com DB_HOST, GEMINI_API_KEY, etc.
+// Tenta ler o arquivo .env (na raiz do projeto). Usamos safeLoad() em vez
+// de load(): a diferença é que load() lança uma EXCEÇÃO FATAL se nenhum
+// arquivo .env for encontrado, enquanto safeLoad() simplesmente não faz
+// nada nesse caso.
+//
+// Por que isso importa: em desenvolvimento local e no CI, o arquivo .env
+// existe de verdade em disco. Mas em produção (Render), NÃO existe
+// arquivo .env — as variáveis são injetadas diretamente como variáveis
+// de ambiente do sistema operacional, configuradas no painel da Render.
+// Se usássemos load() aqui, toda chamada à API quebraria em produção com
+// um erro fatal (que o navegador tentaria interpretar como JSON e falharia
+// com "Unexpected token '<'..."). Com safeLoad(), a ausência do .env em
+// produção é tratada normalmente, e nosso helper App\Config\Env (usado em
+// Database.php, GeminiService.php, etc.) sabe buscar essas variáveis via
+// getenv() como alternativa.
 $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
-$dotenv->load();
+$dotenv->safeLoad();
 
 // Toda resposta desta API é JSON, nunca HTML.
 header('Content-Type: application/json; charset=utf-8');
@@ -109,10 +122,8 @@ try {
     // Endpoint 4: DELETE /api.php?recurso=perguntas&id=1
     // Remove uma pergunta do histórico.
     //
-    // ATENÇÃO: este bloco precisa vir ANTES do fallback de 404 abaixo.
-    // Na versão anterior deste arquivo, ele estava depois do fallback,
-    // o que o tornava código morto — nunca era executado, porque a
-    // resposta 404 já era enviada primeiro. Corrigido nesta revisão.
+    // Este bloco precisa vir ANTES do fallback de 404 abaixo, ou nunca
+    // seria executado (uma requisição DELETE sempre cairia no fallback).
     // ------------------------------------------------------------------
     if ($metodo === 'DELETE' && $recurso === 'perguntas' && isset($_GET['id'])) {
         $removido = $controller->deletar((int) $_GET['id']);

@@ -13,6 +13,11 @@
  * Por que Singleton? Para garantir que, durante toda a execução de uma
  * mesma requisição HTTP, exista APENAS UMA conexão aberta com o banco,
  * evitando desperdício de recursos ao criar conexões repetidas.
+ *
+ * As variáveis de configuração são lidas via App\Config\Env::get(), que
+ * funciona tanto em local/CI (onde existe um arquivo .env) quanto em
+ * produção na Render (onde não existe arquivo .env, só variáveis de
+ * ambiente reais do sistema operacional).
  * ============================================================================
  */
 
@@ -53,7 +58,7 @@ class Database
     public static function getConnection(): PDO
     {
         if (self::$instance === null) {
-            $databaseUrl = $_ENV['DATABASE_URL'] ?? null;
+            $databaseUrl = Env::get('DATABASE_URL');
 
             if ($databaseUrl !== null) {
                 // Formato de produção: postgres://usuario:senha@host:porta/banco
@@ -69,12 +74,12 @@ class Database
                 // conexão criptografada.
                 $sslmode = 'require';
             } else {
-                // Formato de desenvolvimento local / CI: variáveis separadas no .env
-                $host     = $_ENV['DB_HOST'];
-                $port     = $_ENV['DB_PORT'];
-                $database = $_ENV['DB_DATABASE'];
-                $username = $_ENV['DB_USERNAME'];
-                $password = $_ENV['DB_PASSWORD'];
+                // Formato de desenvolvimento local / CI: variáveis separadas
+                $host     = Env::get('DB_HOST');
+                $port     = Env::get('DB_PORT');
+                $database = Env::get('DB_DATABASE');
+                $username = Env::get('DB_USERNAME');
+                $password = Env::get('DB_PASSWORD');
 
                 // 'prefer' = usa SSL se o servidor oferecer, mas não
                 // recusa a conexão se ele não suportar. Evita o erro
